@@ -53,7 +53,6 @@ def smart_heuristic(env: WarehouseEnv, robot_id):
 
 
 
-
 class AgentGreedyImproved(AgentGreedy):
     def heuristic(self, env: WarehouseEnv, robot_id: int):
         return smart_heuristic(env, robot_id)
@@ -62,7 +61,7 @@ class AgentGreedyImproved(AgentGreedy):
 class AgentMinimax(Agent):
     # TODO: section b : 1
     def rb_minimax(self ,env: WarehouseEnv, agent_id: int, depth: int, current_turn: int, start_time, time_limit):
-        if time.time() - start_time + 0.05 >= time_limit:
+        if time.time() - start_time + 0.07 >= time_limit:
             raise OutOfTime
         if env.done() or depth == 0:
             return smart_heuristic(env, agent_id)
@@ -71,12 +70,16 @@ class AgentMinimax(Agent):
         acting_agent = current_turn
 
         operators = env.get_legal_operators(acting_agent)
+        if not operators:
+            return smart_heuristic(env, agent_id)
+
         children = [env.clone() for _ in operators]
 
         for child, op in zip(children, operators):
             child.apply_operator(acting_agent, op)
 
         next_turn = (current_turn + 1) % 2
+
 
         if acting_agent == agent_id:
             value = float('-inf')
