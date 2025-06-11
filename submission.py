@@ -52,7 +52,6 @@ def smart_heuristic(env: WarehouseEnv, robot_id):
 
 
 
-
 class AgentGreedyImproved(AgentGreedy):
     def heuristic(self, env: WarehouseEnv, robot_id: int):
         return smart_heuristic(env, robot_id)
@@ -61,7 +60,7 @@ class AgentGreedyImproved(AgentGreedy):
 class AgentMinimax(Agent):
     # TODO: section b : 1
     def rb_minimax(self ,env: WarehouseEnv, agent_id: int, depth: int, current_turn: int, start_time, time_limit):
-        if time.time() - start_time + 0.07 >= time_limit:
+        if time.time() - start_time + 0.05 >= time_limit:
             raise OutOfTime
         if env.done() or depth == 0:
             return smart_heuristic(env, agent_id)
@@ -101,14 +100,10 @@ class AgentMinimax(Agent):
         depth = 1
 
         try:
+            current_best_op = None
+            best_score = float('-inf')
             while True:
-                current_best_op = None
-                best_score = float('-inf')
-
                 for op in operators:
-                    if time.time() - start_time >= time_limit - 0.05:
-                        raise OutOfTime
-
                     child = env.clone()
                     child.apply_operator(agent_id, op)
                     next_turn = (agent_id + 1) % 2
@@ -125,21 +120,156 @@ class AgentMinimax(Agent):
                 depth += 1
 
         except OutOfTime:
-            pass
-
-        return best_op
+            return best_op
 
 
 class AgentAlphaBeta(Agent):
     # TODO: section c : 1
+    def rb_alphabeta(self, env: WarehouseEnv, agent_id: int, depth: int, current_turn: int, start_time, time_limit,
+                     alpha, beta):
+        if time.time() - start_time + 0.05 >= time_limit:
+            raise OutOfTime
+        if env.done() or depth == 0:
+            return smart_heuristic(env, agent_id)
+
+        # Get the player whose move it is now
+        acting_agent = current_turn
+
+        operators = env.get_legal_operators(acting_agent)
+        if not operators:
+            return smart_heuristic(env, agent_id)
+
+        children = [env.clone() for _ in operators]
+
+        for child, op in zip(children, operators):
+            child.apply_operator(acting_agent, op)
+
+        next_turn = (current_turn + 1) % 2
+
+        if acting_agent == agent_id:
+            cur_max = float('-inf')
+            for child in children:
+                v = self.rb_alphabeta(child, agent_id, depth - 1, next_turn, start_time, time_limit, alpha, beta)
+                cur_max = max(cur_max, v)
+                alpha = max(alpha, cur_max)
+                if cur_max >= beta:
+                    return float('inf')
+            return cur_max
+        else:
+            cur_min = float('inf')
+            for child in children:
+                v = self.rb_alphabeta(child, agent_id, depth - 1, next_turn, start_time, time_limit, alpha, beta)
+                cur_min = min(cur_min, v)
+                beta = min(beta, cur_min)
+                if cur_min <= alpha:
+                    return float('-inf')
+            return cur_min
+
     def run_step(self, env: WarehouseEnv, agent_id, time_limit):
-        raise NotImplementedError()
+        start_time = time.time()
+        operators = env.get_legal_operators(agent_id)
+        best_op = operators[0] if operators else None  # fallback default
+        depth = 1
+
+        try:
+            current_best_op = None
+            best_score = float('-inf')
+            while True:
+                for op in operators:
+                    if time.time() - start_time >= time_limit - 0.05:
+                        raise OutOfTime
+
+                    child = env.clone()
+                    child.apply_operator(agent_id, op)
+                    next_turn = (agent_id + 1) % 2
+
+                    score = self.rb_alphabeta(child, agent_id, depth=depth, current_turn=next_turn, start_time=start_time,
+                                              time_limit=time_limit, alpha=float('-inf'), beta=float('inf'))
+                    if score > best_score:
+                        best_score = score
+                        current_best_op = op
+
+                # Only update best_op after fully completing this depth
+                best_op = current_best_op
+                depth += 1
+
+        except OutOfTime:
+            return best_op
 
 
 class AgentExpectimax(Agent):
     # TODO: section d : 1
+    def rb_expectimax(self, env: WarehouseEnv, agent_id: int, depth: int, current_turn: int, start_time, time_limit):
+        if time.time() - start_time + 0.05 >= time_limit:
+            raise OutOfTime
+        if env.done() or depth == 0:
+            return smart_heuristic(env, agent_id)
+
+        # Get the player whose move it is now
+        acting_agent = current_turn
+
+        operators = env.get_legal_operators(acting_agent)
+        if not operators:
+            return smart_heuristic(env, agent_id)
+
+        children = [env.clone() for _ in operators]
+
+        for child, op in zip(children, operators):
+            child.apply_operator(acting_agent, op)
+
+        next_turn = (current_turn + 1) % 2
+
+        if acting_agent == agent_id:
+            value = float('-inf')
+            for child in children:
+                v = self.rb_expectimax(child, agent_id, depth - 1, next_turn, start_time, time_limit)
+                value = max(value, v)
+            return value
+        else:
+            expected_value = 0
+            denominator = len(operators)
+            if "move east" in operators:
+                denominator += 1
+            if "pick_up" in operators:
+                denominator += 1
+            for child, op in zip(children, operators):
+                numerator = 1
+                if op == "move east" or op == "pick_up":
+                    numerator = 2
+                prob = numerator / denominator
+                v = self.rb_expectimax(child, agent_id, depth - 1, next_turn, start_time, time_limit)
+                expected_value += prob * v
+            return expected_value
+
+
     def run_step(self, env: WarehouseEnv, agent_id, time_limit):
-        raise NotImplementedError()
+        start_time = time.time()
+        operators = env.get_legal_operators(agent_id)
+        best_op = operators[0] if operators else None  # fallback default
+        depth = 1
+
+        try:
+            current_best_op = None
+            best_score = float('-inf')
+            while True:
+                for op in operators:
+                    child = env.clone()
+                    child.apply_operator(agent_id, op)
+                    next_turn = (agent_id + 1) % 2
+
+                    score = self.rb_expectimax(child, agent_id, depth=depth, current_turn=next_turn, start_time=start_time,
+                                               time_limit=time_limit)
+
+                    if score > best_score:
+                        best_score = score
+                        current_best_op = op
+
+                # Only update best_op after fully completing this depth
+                best_op = current_best_op
+                depth += 1
+
+        except OutOfTime:
+            return best_op
 
 
 # here you can check specific paths to get to know the environment
