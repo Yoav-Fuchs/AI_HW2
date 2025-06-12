@@ -33,10 +33,8 @@ def smart_heuristic(env: WarehouseEnv, robot_id):
     # Case 2: Robot does not have a package
     # -------------------------------
     else:
-        enemy = env.get_robot((robot_id + 1) % 2)
         best_package_value = float('inf')
         packages = env.packages
-        count = 0
         for package in packages:
             if not package.on_board:
                 continue
@@ -47,6 +45,8 @@ def smart_heuristic(env: WarehouseEnv, robot_id):
             best_package_value = min(best_package_value, total_trip)
 
         total_value -= (2 * best_package_value)
+
+    total_value += robot.battery * 0.5
 
     return total_value
 
@@ -60,7 +60,7 @@ class AgentGreedyImproved(AgentGreedy):
 class AgentMinimax(Agent):
     # TODO: section b : 1
     def rb_minimax(self ,env: WarehouseEnv, agent_id: int, depth: int, current_turn: int, start_time, time_limit):
-        if time.time() - start_time + 0.05 >= time_limit:
+        if time.time() - start_time + 0.08 >= time_limit:
             raise OutOfTime
         if env.done() or depth == 0:
             return smart_heuristic(env, agent_id)
@@ -127,7 +127,7 @@ class AgentAlphaBeta(Agent):
     # TODO: section c : 1
     def rb_alphabeta(self, env: WarehouseEnv, agent_id: int, depth: int, current_turn: int, start_time, time_limit,
                      alpha, beta):
-        if time.time() - start_time + 0.05 >= time_limit:
+        if time.time() - start_time + 0.08 >= time_limit:
             raise OutOfTime
         if env.done() or depth == 0:
             return smart_heuristic(env, agent_id)
@@ -200,7 +200,7 @@ class AgentAlphaBeta(Agent):
 class AgentExpectimax(Agent):
     # TODO: section d : 1
     def rb_expectimax(self, env: WarehouseEnv, agent_id: int, depth: int, current_turn: int, start_time, time_limit):
-        if time.time() - start_time + 0.05 >= time_limit:
+        if time.time() - start_time + 0.08 >= time_limit:
             raise OutOfTime
         if env.done() or depth == 0:
             return smart_heuristic(env, agent_id)
