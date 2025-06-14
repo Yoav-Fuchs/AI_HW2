@@ -12,7 +12,7 @@ class OutOfTime(Exception):
 
 def smart_heuristic(env: WarehouseEnv, robot_id):
     robot = env.robots[robot_id]
-    total_value = 0.0
+    total_value = random.uniform(0,1)
 
     # Base utility from current credit
     total_value += robot.credit * 10
@@ -49,7 +49,6 @@ def smart_heuristic(env: WarehouseEnv, robot_id):
     total_value += robot.battery * 0.5
 
     return total_value
-
 
 
 class AgentGreedyImproved(AgentGreedy):
@@ -100,9 +99,9 @@ class AgentMinimax(Agent):
         depth = 1
 
         try:
-            current_best_op = None
-            best_score = float('-inf')
             while True:
+                current_best_op = None
+                best_score = float('-inf')
                 for op in operators:
                     child = env.clone()
                     child.apply_operator(agent_id, op)
@@ -172,12 +171,10 @@ class AgentAlphaBeta(Agent):
         depth = 1
 
         try:
-            current_best_op = None
-            best_score = float('-inf')
             while True:
+                current_best_op = None
+                best_score = float('-inf')
                 for op in operators:
-                    if time.time() - start_time >= time_limit - 0.05:
-                        raise OutOfTime
 
                     child = env.clone()
                     child.apply_operator(agent_id, op)
@@ -249,9 +246,9 @@ class AgentExpectimax(Agent):
         depth = 1
 
         try:
-            current_best_op = None
-            best_score = float('-inf')
             while True:
+                current_best_op = None
+                best_score = float('-inf')
                 for op in operators:
                     child = env.clone()
                     child.apply_operator(agent_id, op)
